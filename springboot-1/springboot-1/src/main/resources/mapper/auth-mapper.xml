@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="auth">
+	
+	<resultMap type="user" id="userResultSet">
+		<id column="USER_NO" property="userNo"/>
+		<result column="USER_STATUS" property="userStatus" typeHandler="userStatusHandelr"/>
+		<collection property="authorities" 
+					javaType="arraylist"
+					ofType="simpleGrantedAuthority"
+					select="selectAuthorities"
+					column="USER_NO"					
+		></collection>
+	</resultMap>	
+	
+	<select id="loadUserByUsername" resultMap="userResultSet" >
+		SELECT
+			*
+		FROM MEMBER
+		JOIN MEMBER_SOCIAL USING(USER_NO) 
+		WHERE 
+			SOCIAL_ID = #{socialId}
+			AND SOCIAL_TYPE = #{socialType}		
+	</select>
+	
+	<select id="selectAuthorities" resultMap="authoritiesMap">
+		SELECT
+			*
+		FROM AUTHORITY
+		WHERE USER_NO = #{userNo}
+	</select>
+	
+	<resultMap type="simpleGrantedAuthority" id="authoritiesMap">
+		<constructor>
+			<arg column="authority" javaType="string"/>
+		</constructor>
+	</resultMap>
+	
+	<insert id="insertUserBySocialLogin" useGeneratedKeys="true" parameterType="member">
+		<selectKey keyProperty="userNo" resultType="int" order="BEFORE">
+			SELECT SEQ_UNO.NEXTVAL FROM DUAL
+		</selectKey>
+		INSERT INTO MEMBER
+		VALUES (
+			#{userNo},
+			#{email},
+			#{userPwd} ,
+			#{nickName} ,
+			DEFAULT,
+			DEFAULT,
+			DEFAULT,
+			#{profile}
+		)
+	</insert>
+	
+	<insert id="insertUserSocialBySocialLogin">
+		INSERT INTO MEMBER_SOCIAL
+		VALUES (
+			#{socialId} , 
+			#{userNo} , 
+			#{socialType}
+		)
+	</insert>
+	
+	<insert id="insertUserAuthorityBySocialLogin">
+		INSERT INTO AUTHORITY
+		VALUES (#{userNo}, 'ROLE_USER')
+	</insert>
+	
+	
+	
+	
+</mapper>

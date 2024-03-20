@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="chat">
+
+	<resultMap type="member" id="userResultSet">
+		<result column="USER_STATUS" property="userStatus" typeHandler="userStatusHandelr" />
+	</resultMap>
+	
+	<select id="selectChatRooms" resultType="chatRoom">
+		SELECT
+			CHAT_ROOM_NO,
+			TITLE,
+			NICK_NAME,
+			(SELECT COUNT(*) FROM CHAT_ROOM_JOIN CRJ WHERE CRJ.CHAT_ROOM_NO = CR.CHAT_ROOM_NO) CNT,
+			USER_NO
+		FROM CHAT_ROOM CR
+		LEFT JOIN MEMBER USING (USER_NO)
+	</select>
+	
+	<insert id="openChatRoom" useGeneratedKeys="true" parameterType="chatRoom">
+		
+		<selectKey keyProperty="chatRoomNo" resultType="int" order="BEFORE">
+			SELECT SEQ_CRM_NO.NEXTVAL FROM DUAL
+		</selectKey>
+		
+		INSERT INTO CHAT_ROOM
+		VALUES (
+			#{chatRoomNo} ,
+			#{title},
+			DEFAULT,
+			#{userNo}
+		)
+	</insert>
+	
+	<insert id='joinChatRoom'>
+		INSERT INTO CHAT_ROOM_JOIN
+		VALUES(
+			#{userNo},
+			#{chatRoomNo},
+			#{userStatus , typeHandler=userStatusHandelr}
+		)
+	</insert>
+	
+	
+	
+	<select id="selectUser" resultMap="userResultSet">
+		SELECT *
+		FROM MEMBER
+		LEFT JOIN CHAT_ROOM_JOIN USING(USER_NO)
+		WHERE CHAT_ROOM_NO = #{chatRoomNo} AND USER_NO = #{userNo}
+	</select>
+	
+	
+	<select id="selectMessages" resultType='chatMessage'>
+		SELECT 
+			CM_NO,
+			MESSAGE, 
+			CHAT_ROOM_NO,
+			USER_NO,
+			NICK_NAME,
+			PROFILE
+		FROM CHAT_MESSAGE 
+		JOIN MEMBER USING(USER_NO) 
+		WHERE CHAT_ROOM_NO = #{chatRoomNo}		
+	</select>
+	
+	<insert id='insertChatMessage'>
+		INSERT INTO CHAT_MESSAGE
+		VALUES (
+			SEQ_CM_NO.NEXTVAL , 
+			#{message}, 
+			SYSDATE,
+			#{chatRoomNo},
+			#{userNo}
+		)
+	</insert>
+	
+	<select id="selectUsers" resultMap="userResultSet">
+		SELECT 
+			USER_NO , 
+			NICK_NAME,
+			USER_STATUS
+		FROM MEMBER 
+		JOIN CHAT_ROOM_JOIN USING(USER_NO)
+		WHERE CHAT_ROOM_NO = #{chatRoomNo}		
+	</select>
+	
+	<delete id="exitChatRoom">
+		DELETE FROM CHAT_ROOM_JOIN
+		WHERE CHAT_ROOM_NO = #{chatRoomNo} AND USER_NO = #{userNo}
+	</delete>
+	
+	<update id="updateUserStatus">
+		UPDATE CHAT_ROOM_JOIN 
+		   SET USER_STATUS = #{userStatus, typeHandler = userStatusHandelr }
+		WHERE CHAT_ROOM_NO = #{chatRoomNo} AND USER_NO = #{userNo}
+	</update>
+	
+	<select id="selectChatUser" resultMap="userResultSet">
+		SELECT 
+			NICK_NAME,
+			PROFILE
+		FROM MEMBER
+		WHERE USER_NO = #{userNo}
+	</select>
+	
+	
+	
+	
+	
+	
+</mapper>
